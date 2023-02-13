@@ -1,0 +1,2 @@
+/subsystem=datasources/data-source=PostgresDS/:add(driver-name=my-driver,jndi-name=java:jboss/resources/jdbc/PostgresDS,connection-url=jdbc:postgresql://localhost:5432/testdb,use-java-context=false,check-valid-connection-sql=select 1,min-pool-size=5,max-pool-size=5,user-name=test,password=test)
+/subsystem=datasources/data-source=PostgresDS:enable

@@ -1,0 +1,120 @@
+apiVersion: 1.0.0
+metadata:
+  name: devfile-eap80akdb
+attributes:
+  extensions.ignoreRecommendations: 'true'
+components:
+  - id: redhat/java8/latest
+    type: chePlugin
+  - mountSources: true
+    endpoints:
+      - attributes:
+          path: /ee10-web/
+        name: root
+        port: 8080
+    memoryLimit: 1Gi
+    type: dockerimage
+    volumes:
+      - name: m2
+        containerPath: /.m2
+    alias: eap80
+    image: registry.gitlab.com/ss-cloudnative/openshift/dev-eap80
+    env:
+      - value: standalone-full-ha.xml
+        name: MYPROFILE
+  - mountSources: true
+    endpoints:
+      - attributes:
+          public: 'false'
+        name: pg
+        port: 5432
+    memoryLimit: 512Mi
+    type: dockerimage
+    alias: postgres
+    image: postgres
+    env:
+      - value: /tmp/pgdata
+        name: PGDATA
+      - value: test
+        name: POSTGRES_USER
+      - value: test
+        name: POSTGRES_PASSWORD
+      - value: testdb
+        name: POSTGRES_DB
+  - id: redhat/vscode-xml/latest
+    type: chePlugin
+  - id: redhat/vscode-yaml/latest
+    type: chePlugin
+commands:
+  - name: build
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: mvn clean install
+        component: eap80
+  - name: deploy
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          cp jsp-counter/target/*.war /opt/jboss8/standalone/deployments && 
+            echo 'Archive was deployed, click on eap endpoint from Workspace view to open the application'
+        component: eap80
+  - name: configure-scanner
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          /opt/jboss8/bin/jboss-cli.sh -c --file=${CHE_PROJECTS_ROOT}/devfile-eap80/config/scanner.cli &&
+            echo 'deployment scanner was configured'
+        component: eap80
+  - name: configure-jdbc
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          /opt/jboss8/bin/jboss-cli.sh -c --file=${CHE_PROJECTS_ROOT}/devfile-eap80/config/jdbc.cli &&
+            echo 'postgres jdbc driver was configured'
+        component: eap80
+  - name: configure-datasource
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          /opt/jboss8/bin/jboss-cli.sh -c --file=${CHE_PROJECTS_ROOT}/devfile-eap80/config/datasource.cli &&
+            echo 'postgres datasource was configured'
+        component: eap80
+  - name: test-datasource
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: '/opt/jboss8/bin/jboss-cli.sh -c --command=''/subsystem=datasources/data-source=PostgresDS:test-connection-in-pool'''
+        component: eap80
+  - name: configure-messaging-destination
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          /opt/jboss8/bin/jboss-cli.sh -c --file=${CHE_PROJECTS_ROOT}/devfile-eap80/config/queue.cli &&
+            echo 'jms-queue was configured'
+        component: eap80
+  - name: jboss-cli
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: /opt/jboss8/bin/jboss-cli.sh -c
+        component: eap80
+  - name: prepare-database
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: |-
+          psql -U test -d testdb -f ${CHE_PROJECTS_ROOT}/devfile-eap80/config/import.sql &&
+            echo 'Database testdb  was configured'
+        component: postgres
+  - name: psql
+    actions:
+      - workdir: '${CHE_PROJECTS_ROOT}/devfile-eap80'
+        type: exec
+        command: psql -U test -d testdb
+        component: postgres

@@ -1,0 +1,1 @@
+/subsystem=deployment-scanner/scanner=default:write-attribute(name=scan-interval,value=60)

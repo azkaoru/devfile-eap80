@@ -1,0 +1,2 @@
+module add --name=org.postgresql --resources=/opt/jboss8/drivers/postgresql-42.2.24.jar --dependencies=javax.api,javax.transaction.api
+/subsystem=datasources/jdbc-driver=my-driver:add(driver-name=my-driver,driver-module-name=org.postgresql,driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)

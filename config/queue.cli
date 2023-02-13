@@ -1,0 +1,1 @@
+jms-queue add --queue-address=messageQueue --entries=queue/messageQueue,java:jboss/exported/queue/messageQueue
